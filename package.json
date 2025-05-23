@@ -1,0 +1,34 @@
+{
+  "name": "gemini-image-handwritting-to-text",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@ai-sdk/google": "^1.2.18",
+    "@google-cloud/aiplatform": "^4.2.0",
+    "@google-cloud/vertexai": "^1.10.0",
+    "@google/generative-ai": "^0.24.1",
+    "ai": "^4.3.16",
+    "dotenv": "^16.5.0",
+    "formidable": "^3.5.4",
+    "google-auth-library": "^9.0.0",
+    "googleapis": "^149.0.0",
+    "next": "15.3.2",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/formidable": "^3.4.5",
+    "@types/node": "^20.17.50",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
