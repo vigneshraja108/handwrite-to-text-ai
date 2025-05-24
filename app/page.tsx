@@ -298,12 +298,6 @@
 //   );
 // }
 
-
-
-
-
-
-
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 
@@ -331,6 +325,7 @@ export default function Page() {
 
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const sessionRefs = useRef<{ [id: string]: HTMLDivElement | null }>({});
+  const chatContainerRefs = useRef<{ [id: string]: HTMLDivElement | null }>({});
 
   useEffect(() => {
     if (!activeSessionId) return;
@@ -381,6 +376,14 @@ export default function Page() {
       setSelectedFile(null);
       setPreviewUrl(null);
       setChatInput("");
+
+      // 👇 Scroll new session into view after DOM update
+      setTimeout(() => {
+        sessionRefs.current[newSession.id]?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }, 100);
     } catch (err: any) {
       setError(err.message || "Something went wrong");
     } finally {
@@ -395,6 +398,7 @@ export default function Page() {
 
     const input = chatInput.trim();
 
+    // Optimistically add user's message
     setSessions((prev) =>
       prev.map((session) =>
         session.id === activeSessionId
@@ -427,6 +431,7 @@ export default function Page() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Chat failed");
 
+      // Add assistant's reply
       setSessions((prev) =>
         prev.map((session) =>
           session.id === activeSessionId
@@ -440,6 +445,14 @@ export default function Page() {
             : session
         )
       );
+
+      // Scroll chat container to bottom
+      setTimeout(() => {
+        const chatBox = chatContainerRefs.current[activeSessionId];
+        if (chatBox) {
+          chatBox.scrollTop = chatBox.scrollHeight;
+        }
+      }, 100);
     } catch (err: any) {
       setError(err.message || "Chat failed");
     } finally {
@@ -454,7 +467,7 @@ export default function Page() {
         behavior: "smooth",
         block: "start",
       });
-    }, 100); // Delay to ensure render
+    }, 100);
   };
 
   return (
@@ -503,7 +516,7 @@ export default function Page() {
 
       {/* Chat Section */}
       <section className="w-full md:w-1/2 flex flex-col p-6 bg-gray-50 h-screen">
-        {/* Sessions and extracted text list */}
+        {/* Sessions List */}
         <div
           className="flex-1 overflow-y-auto pr-2 space-y-6"
           style={{ maxHeight: "calc(100vh - 150px)" }}
@@ -549,6 +562,9 @@ export default function Page() {
               {/* Chat Messages */}
               {session.id === activeSessionId && (
                 <div
+                  ref={(el) => {
+                    chatContainerRefs.current[session.id] = el;
+                  }}
                   className="flex flex-col overflow-y-auto pr-1 scroll-smooth"
                   style={{ maxHeight: "25vh" }}
                 >
@@ -562,11 +578,12 @@ export default function Page() {
                             : "bg-green-100 self-end text-gray-800"
                         }`}
                       >
-                        <strong>{msg.role === "user" ? "You" : "Gemini"}:</strong>{" "}
+                        <strong>
+                          {msg.role === "user" ? "You" : "Gemini"}:
+                        </strong>{" "}
                         {msg.text}
                       </div>
                     ))}
-                    <div ref={bottomRef} />
                   </div>
                 </div>
               )}
@@ -577,7 +594,9 @@ export default function Page() {
         {/* Chat Input */}
         {activeSessionId && (
           <div className="mt-4 p-4 bg-white border-t shadow">
-            <h2 className="font-semibold mb-2 text-gray-800">💬 Ask a question</h2>
+            <h2 className="font-semibold mb-2 text-gray-800">
+              💬 Ask a question
+            </h2>
             <textarea
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
