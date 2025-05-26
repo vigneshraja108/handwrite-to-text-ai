@@ -27,7 +27,7 @@ export default function Page() {
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const sessionRefs = useRef<{ [id: string]: HTMLDivElement | null }>({});
   const chatContainerRefs = useRef<{ [id: string]: HTMLDivElement | null }>({});
-  const DEFAULT_EMAIL = "vigneshraja108@gmail.com";
+  const DEFAULT_EMAIL = "swarisetechno@gmail.com";
 
 function detectEmailToSend(input: string): string | null {
   // Check if there's a real email in the input
