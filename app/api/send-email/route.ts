@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
       to,
       from: "vigneshrajaprofessional@gmail.com",
       subject,
-      text: message,
+      text: `Extracted Text: \n ${message}`,
     });
     return NextResponse.json({ success: true });
   } catch (error) {
