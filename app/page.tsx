@@ -24,26 +24,34 @@ export default function Page() {
   const [error, setError] = useState("");
   const [chatInput, setChatInput] = useState("");
   const [emailInputs, setEmailInputs] = useState<{ [id: string]: string }>({});
+  const [extractedEmail, setExtractedEmail] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const sessionRefs = useRef<{ [id: string]: HTMLDivElement | null }>({});
   const chatContainerRefs = useRef<{ [id: string]: HTMLDivElement | null }>({});
-  const DEFAULT_EMAIL = "swarisetechno@gmail.com";
+  const DEFAULT_EMAIL = "vigneshrajaprofessional@gmail.com";
 
-function detectEmailToSend(input: string): string | null {
-  // Check if there's a real email in the input
-  const emailMatch = input.match(
-    /\b(?:send(?:\s+it)?|email(?:\s+it)?|send\s+this|email\s+this)?\s*(?:to\s*)?([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})\b/i
-  );
-  if (emailMatch) return emailMatch[1];
+  function extractEmail(text: string) {
+    const match = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+    const email = match ? match[0] : null;
+    setExtractedEmail(email);
+    return email;
+  }
 
-  // Check for implicit intent without an actual email
-  const implicitMatch = /\b(send|email)\b.*\b(email|gmail|inbox|this)\b/i.test(input);
-  if (implicitMatch) return DEFAULT_EMAIL;
+  function detectEmailToSend(input: string): string | null {
+    // Check if there's a real email in the input
+    const emailMatch = input.match(
+      /\b(?:send(?:\s+it)?|email(?:\s+it)?|send\s+this|email\s+this)?\s*(?:to\s*)?([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})\b/i
+    );
+    if (emailMatch) return emailMatch[1];
 
-  return null;
-}
+    // Check for implicit intent without an actual email
+    const implicitMatch = /\b(send|email)\b.*\b(email|gmail|inbox|this)\b/i.test(input);
+    if (implicitMatch) return DEFAULT_EMAIL;
 
+    return null;
+  }
 
+  
   useEffect(() => {
     if (!activeSessionId) return;
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -70,19 +78,20 @@ function detectEmailToSend(input: string): string | null {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Extraction failed");
-
-     const newSession: Session = {
-  id: crypto.randomUUID(),
-  imageUrl: previewUrl || "",
-  extractedText: data.text,
-  chatHistory: [
-    {
-      role: "assistant",
-      text:
-        "✅ Text extracted successfully. \n\n📧 Would you like me to send this to your email?",
-    },
-  ],
-};
+      const extracted = extractEmail(data.text);
+      const newSession: Session = {
+        id: crypto.randomUUID(),
+        imageUrl: previewUrl || "",
+        extractedText: data.text,
+        chatHistory: [
+          {
+            role: "assistant",
+            text: extracted
+              ? `✅ Text extracted successfully. \n\n📧 Would you like me to send this to your ${extracted}?`
+              : "✅ Text extracted successfully. \n\n📧 Would you like me to send this to your email?  ",
+          },
+        ],
+      };
 
       setSessions((prev) => [...prev, newSession]);
       setActiveSessionId(newSession.id);
@@ -104,192 +113,194 @@ function detectEmailToSend(input: string): string | null {
   }
 
   async function handleChat() {
-    
-  if (!chatInput.trim() || !activeSessionId) return;
-  setChatLoading(true);
-  setError("");
 
-  const input = chatInput.trim();
+    if (!chatInput.trim() || !activeSessionId) return;
+    setChatLoading(true);
+    setError("");
 
-  const session = sessions.find((s) => s.id === activeSessionId);
-  if (!session) {
-    setError("Session not found");
-    setChatLoading(false);
-    return;
-  }
+    const input = chatInput.trim();
 
-// Check if the last assistant message asked to send the email
-const lastAssistantMsg = session.chatHistory
-  .slice()
-  .reverse()
-  .find((msg) => msg.role === "assistant");
+    const session = sessions.find((s) => s.id === activeSessionId);
+    if (!session) {
+      setError("Session not found");
+      setChatLoading(false);
+      return;
+    }
 
-if (
-  lastAssistantMsg &&
-  lastAssistantMsg.text.includes("Would you like me to send this to your email?") &&
-  /^yes\b/i.test(input)
-) {
-  try {
-    const res = await fetch("/api/send-email", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        to: DEFAULT_EMAIL,
-        subject: "Extracted Text from Handwritten Image",
-        message: session.extractedText,
-      }),
-    });
+    // Check if the last assistant message asked to send the email
+    const lastAssistantMsg = session.chatHistory
+      .slice()
+      .reverse()
+      .find((msg) => msg.role === "assistant");
+      const extracted = extractEmail(session.extractedText); // ✅ get freshest email
+    if (
+      lastAssistantMsg &&
+      lastAssistantMsg.text.includes( extracted ?  `Would you like me to send this to your ${extracted}?` :
+        "Would you like me to send this to your email?"
+      ) &&
+      /^yes\b/i.test(input)
+    ) {
+      try {
+        const res = await fetch("/api/send-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            to: extracted || DEFAULT_EMAIL,
+            subject: "Extracted Text from Handwritten Image",
+            message: session.extractedText,
+          }),
+        });
 
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Send failed");
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Send failed");
 
+        setSessions((prev) =>
+          prev.map((s) =>
+            s.id === activeSessionId
+              ? {
+                  ...s,
+                  chatHistory: [
+                    ...s.chatHistory,
+                    { role: "user", text: input },
+                    {
+                      role: "assistant",
+                      text: `✅ Sent the extracted text to **${extracted || DEFAULT_EMAIL}**.`,
+                    },
+                  ],
+                }
+              : s
+          )
+        );
+      } catch (err: any) {
+        setSessions((prev) =>
+          prev.map((s) =>
+            s.id === activeSessionId
+              ? {
+                  ...s,
+                  chatHistory: [
+                    ...s.chatHistory,
+                    { role: "user", text: input },
+                    {
+                      role: "assistant",
+                      text: `❌ Failed to send email: ${err.message}`,
+                    },
+                  ],
+                }
+              : s
+          )
+        );
+      } finally {
+        setChatInput("");
+        setChatLoading(false);
+      }
+      return;
+    }
+
+    // Detect explicit or implicit email intent
+    const emailTo = detectEmailToSend(input);
+
+
+    if (emailTo) {
+      try {
+        const res = await fetch("/api/send-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            to: emailTo,
+            subject: "Extracted Text from Handwritten Image",
+            message: session.extractedText,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Send failed");
+
+        setSessions((prev) =>
+          prev.map((s) =>
+            s.id === activeSessionId
+              ? {
+                  ...s,
+                  chatHistory: [
+                    ...s.chatHistory,
+                    { role: "user", text: input },
+                    {
+                      role: "assistant",
+                      text: `📧 Sent the extracted text to ${emailTo}.`,
+                    },
+                  ],
+                }
+              : s
+          )
+        );
+      } catch (err: any) {
+        setSessions((prev) =>
+          prev.map((s) =>
+            s.id === activeSessionId
+              ? {
+                  ...s,
+                  chatHistory: [
+                    ...s.chatHistory,
+                    { role: "user", text: input },
+                    {
+                      role: "assistant",
+                      text: `❌ Failed to send email: ${err.message}`,
+                    },
+                  ],
+                }
+              : s
+          )
+        );
+      } finally {
+        setChatInput("");
+        setChatLoading(false);
+      }
+      return;
+    }
+
+
+    // Normal chat logic
     setSessions((prev) =>
       prev.map((s) =>
         s.id === activeSessionId
           ? {
               ...s,
-              chatHistory: [
-                ...s.chatHistory,
-                { role: "user", text: input },
-                {
-                  role: "assistant",
-                  text: `✅ Sent the extracted text to **${DEFAULT_EMAIL}**.`,
-                },
-              ],
+              chatHistory: [...s.chatHistory, { role: "user", text: input }],
             }
           : s
       )
     );
-  } catch (err: any) {
-    setSessions((prev) =>
-      prev.map((s) =>
-        s.id === activeSessionId
-          ? {
-              ...s,
-              chatHistory: [
-                ...s.chatHistory,
-                { role: "user", text: input },
-                {
-                  role: "assistant",
-                  text: `❌ Failed to send email: ${err.message}`,
-                },
-              ],
-            }
-          : s
-      )
-    );
-  } finally {
     setChatInput("");
-    setChatLoading(false);
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat: [...session.chatHistory, { role: "user", text: input }],
+          extractedText: session.extractedText,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Chat failed");
+
+      setSessions((prev) =>
+        prev.map((s) =>
+          s.id === activeSessionId
+            ? {
+                ...s,
+                chatHistory: [
+                  ...s.chatHistory,
+                  { role: "assistant", text: data.reply },
+                ],
+              }
+            : s
+        )
+      );
+    } catch (err: any) {
+      setError(err.message || "Chat failed");
+    } finally {
+      setChatLoading(false);
+    }
   }
-  return;
-}
-
-// Detect explicit or implicit email intent
-const emailTo = detectEmailToSend(input);
-
-
-if (emailTo) {
-  try {
-    const res = await fetch("/api/send-email", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        to: emailTo,
-        subject: "Extracted Text from Handwritten Image",
-        message: session.extractedText,
-      }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Send failed");
-
-    setSessions((prev) =>
-      prev.map((s) =>
-        s.id === activeSessionId
-          ? {
-              ...s,
-              chatHistory: [
-                ...s.chatHistory,
-                { role: "user", text: input },
-                {
-                  role: "assistant",
-                  text: `📧 Sent the extracted text to ${emailTo}.`,
-                },
-              ],
-            }
-          : s
-      )
-    );
-  } catch (err: any) {
-    setSessions((prev) =>
-      prev.map((s) =>
-        s.id === activeSessionId
-          ? {
-              ...s,
-              chatHistory: [
-                ...s.chatHistory,
-                { role: "user", text: input },
-                {
-                  role: "assistant",
-                  text: `❌ Failed to send email: ${err.message}`,
-                },
-              ],
-            }
-          : s
-      )
-    );
-  } finally {
-    setChatInput("");
-    setChatLoading(false);
-  }
-  return;
-}
-
-
-  // Normal chat logic
-  setSessions((prev) =>
-    prev.map((s) =>
-      s.id === activeSessionId
-        ? {
-            ...s,
-            chatHistory: [...s.chatHistory, { role: "user", text: input }],
-          }
-        : s
-    )
-  );
-  setChatInput("");
-
-  try {
-    const res = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chat: [...session.chatHistory, { role: "user", text: input }],
-        extractedText: session.extractedText,
-      }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Chat failed");
-
-    setSessions((prev) =>
-      prev.map((s) =>
-        s.id === activeSessionId
-          ? {
-              ...s,
-              chatHistory: [
-                ...s.chatHistory,
-                { role: "assistant", text: data.reply },
-              ],
-            }
-          : s
-      )
-    );
-  } catch (err: any) {
-    setError(err.message || "Chat failed");
-  } finally {
-    setChatLoading(false);
-  }
-}
 
   const handleSessionSelect = (id: string) => {
     setActiveSessionId(id);
@@ -301,70 +312,70 @@ if (emailTo) {
     }, 100);
   };
 
- async function handleSendEmail(sessionId: string) {
-  const email = emailInputs[sessionId]?.trim();
-  if (!email) return alert("Enter a valid email.");
-  setEmailLoading(sessionId);
-  setError("");
+  async function handleSendEmail(sessionId: string) {
+    const email = emailInputs[sessionId]?.trim();
+    if (!email) return alert("Enter a valid email.");
+    setEmailLoading(sessionId);
+    setError("");
 
-  const session = sessions.find((s) => s.id === sessionId);
-  if (!session) return;
+    const session = sessions.find((s) => s.id === sessionId);
+    if (!session) return;
 
-  try {
-    const res = await fetch("/api/send-email", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        to: email,
-        subject: "Extracted Text from Handwritten Image",
-        message: session.extractedText,
-      }),
-    });
+    try {
+      const res = await fetch("/api/send-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to: email,
+          subject: "Extracted Text from Handwritten Image",
+          message: session.extractedText,
+        }),
+      });
 
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Send failed");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Send failed");
 
-    // Add success notification to chat history
-    setSessions((prev) =>
-      prev.map((s) =>
-        s.id === sessionId
-          ? {
-              ...s,
-              chatHistory: [
-                ...s.chatHistory,
-                {
-                  role: "assistant",
-                  text: `✅ Extracted text successfully sent to **${email}**.`,
-                },
-              ],
-            }
-          : s
-      )
-    );
+      // Add success notification to chat history
+      setSessions((prev) =>
+        prev.map((s) =>
+          s.id === sessionId
+            ? {
+                ...s,
+                chatHistory: [
+                  ...s.chatHistory,
+                  {
+                    role: "assistant",
+                    text: `✅ Extracted text successfully sent to **${email}**.`,
+                  },
+                ],
+              }
+            : s
+        )
+      );
 
-    setEmailInputs((prev) => ({ ...prev, [sessionId]: "" }));
-  } catch (err: any) {
-    // Add failure notification to chat history
-    setSessions((prev) =>
-      prev.map((s) =>
-        s.id === sessionId
-          ? {
-              ...s,
-              chatHistory: [
-                ...s.chatHistory,
-                {
-                  role: "assistant",
-                  text: `❌ Sorry, failed to send the email. Please try again later.`,
-                },
-              ],
-            }
-          : s
-      )
-    );
-  } finally {
-    setEmailLoading(null);
+      setEmailInputs((prev) => ({ ...prev, [sessionId]: "" }));
+    } catch (err: any) {
+      // Add failure notification to chat history
+      setSessions((prev) =>
+        prev.map((s) =>
+          s.id === sessionId
+            ? {
+                ...s,
+                chatHistory: [
+                  ...s.chatHistory,
+                  {
+                    role: "assistant",
+                    text: `❌ Sorry, failed to send the email. Please try again later.`,
+                  },
+                ],
+              }
+            : s
+        )
+      );
+    } finally {
+      setEmailLoading(null);
+    }
   }
-}
 
 
   return (
@@ -485,29 +496,6 @@ if (emailTo) {
               )}
 
               {/* Email Send Form */}
-              <div className="mt-4 space-y-2">
-                <input
-                  type="email"
-                  placeholder="Enter recipient email"
-                  value={emailInputs[session.id] || ""}
-                  onChange={(e) =>
-                    setEmailInputs((prev) => ({
-                      ...prev,
-                      [session.id]: e.target.value,
-                    }))
-                  }
-                  className="w-full border rounded px-2 py-1 text-sm"
-                />
-                <button
-                  onClick={() => handleSendEmail(session.id)}
-                  disabled={!!emailLoading}
-                  className="bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700 text-sm"
-                >
-                  {emailLoading === session.id
-                    ? "Sending..."
-                    : "Send via Email"}
-                </button>
-              </div>
             </div>
           ))}
         </div>
@@ -545,4 +533,30 @@ if (emailTo) {
       </section>
     </main>
   );
+}
+
+{
+  /* <div className="mt-4 space-y-2">
+                <input
+                  type="email"
+                  placeholder="Enter recipient email"
+                  value={emailInputs[session.id] || ""}
+                  onChange={(e) =>
+                    setEmailInputs((prev) => ({
+                      ...prev,
+                      [session.id]: e.target.value,
+                    }))
+                  }
+                  className="w-full border rounded px-2 py-1 text-sm"
+                />
+                <button
+                  onClick={() => handleSendEmail(session.id)}
+                  disabled={!!emailLoading}
+                  className="bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700 text-sm"
+                >
+                  {emailLoading === session.id
+                    ? "Sending..."
+                    : "Send via Email"}
+                </button>
+              </div> */
 }
