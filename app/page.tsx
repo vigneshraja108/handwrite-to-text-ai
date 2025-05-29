@@ -51,7 +51,7 @@ export default function Page() {
     return null;
   }
 
-  
+
   useEffect(() => {
     if (!activeSessionId) return;
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -99,6 +99,20 @@ export default function Page() {
       setPreviewUrl(null);
       setChatInput("");
 
+      await fetch("/api/save-to-qdrant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          extractedText: data.text,
+          chatHistory: newSession.chatHistory,
+          metadata: {
+            isEmailSent: true, // or false
+            // emailContent: data.text, // optional
+            timestamp: Date.now(),
+          },
+        }),
+      });
+
       setTimeout(() => {
         sessionRefs.current[newSession.id]?.scrollIntoView({
           behavior: "smooth",
@@ -132,11 +146,12 @@ export default function Page() {
       .slice()
       .reverse()
       .find((msg) => msg.role === "assistant");
-      const extracted = extractEmail(session.extractedText); // ✅ get freshest email
+    const extracted = extractEmail(session.extractedText); // ✅ get freshest email
     if (
       lastAssistantMsg &&
-      lastAssistantMsg.text.includes( extracted ?  `Would you like me to send this to your ${extracted}?` :
-        "Would you like me to send this to your email?"
+      lastAssistantMsg.text.includes( extracted
+          ? `Would you like me to send this to your ${extracted}?`
+          : "Would you like me to send this to your email?"
       ) &&
       /^yes\b/i.test(input)
     ) {
@@ -164,7 +179,9 @@ export default function Page() {
                     { role: "user", text: input },
                     {
                       role: "assistant",
-                      text: `✅ Sent the extracted text to **${extracted || DEFAULT_EMAIL}**.`,
+                      text: `✅ Sent the extracted text to **${
+                        extracted || DEFAULT_EMAIL
+                      }**.`,
                     },
                   ],
                 }
@@ -533,30 +550,4 @@ export default function Page() {
       </section>
     </main>
   );
-}
-
-{
-  /* <div className="mt-4 space-y-2">
-                <input
-                  type="email"
-                  placeholder="Enter recipient email"
-                  value={emailInputs[session.id] || ""}
-                  onChange={(e) =>
-                    setEmailInputs((prev) => ({
-                      ...prev,
-                      [session.id]: e.target.value,
-                    }))
-                  }
-                  className="w-full border rounded px-2 py-1 text-sm"
-                />
-                <button
-                  onClick={() => handleSendEmail(session.id)}
-                  disabled={!!emailLoading}
-                  className="bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700 text-sm"
-                >
-                  {emailLoading === session.id
-                    ? "Sending..."
-                    : "Send via Email"}
-                </button>
-              </div> */
 }
