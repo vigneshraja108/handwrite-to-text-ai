@@ -30,7 +30,7 @@
 import * as logfire from 'logfire';
 
 logfire.configure({
-  token: 'pylf_v1_eu_qXWs4vhgCDG92Dt1wRLD1xTBZ5Z4mxTqJRB56H4pnl2R', // Your actual token
+  token:  process.env.LOGGER_API_KEY, // Your actual token
   serviceName: 'starter-project',
   serviceVersion: '1.0.0',
 });

@@ -123,7 +123,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 logfire.configure({
-  token: 'pylf_v1_eu_qXWs4vhgCDG92Dt1wRLD1xTBZ5Z4mxTqJRB56H4pnl2R',
+  token: process.env.LOGGER_API_KEY,
   serviceName: 'starter-project',
   serviceVersion: '1.0.0',
 });
