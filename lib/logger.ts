@@ -5,7 +5,7 @@ let isLogfireConfigured = false;
 if (!isLogfireConfigured) {
   logfire.configure({
     token: process.env.LOGGER_API_KEY,
-    serviceName: 'starter-project',
+    serviceName: process.env.LOG_SERVICE_NAME,
     serviceVersion: '1.0.0',
   });
   isLogfireConfigured = true;
