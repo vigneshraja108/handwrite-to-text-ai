@@ -3,7 +3,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { log } from '@/lib/logger'; // adjust import if needed
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY!);
-
+console.log("🟠 LOGGER_API_KEY in runtime:", process.env.LOGGER_API_KEY);
 log('info', 'Transcribe module initialised');
 log('info', 'LLM Initialised');
 
