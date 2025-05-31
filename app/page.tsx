@@ -28,7 +28,7 @@ export default function Page() {
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const sessionRefs = useRef<{ [id: string]: HTMLDivElement | null }>({});
   const chatContainerRefs = useRef<{ [id: string]: HTMLDivElement | null }>({});
-  const DEFAULT_EMAIL = "vigneshrajaprofessional@gmail.com";
+  const DEFAULT_EMAIL: string | null = process.env.NEXT_PUBLIC_DEFAULT_EMAIL ?? null;
 
   function extractEmail(text: string) {
     const match = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
