@@ -66,6 +66,14 @@ APPLICATION SETUP
 
         Assign it to SENDGRID_API_KEY
 
+        Go to: SendGrid Sender Authentication
+
+        Under "Single Sender Verification", click:
+        
+        ➕ Create a Sender and fill the details
+
+        Go to your gmail inbox (your@gmail.com) and click Verify
+
      3. 📊 Logging (Logfire / Pydantic)
         Create an account at https://logfire.dev (or the relevant log provider)
 
