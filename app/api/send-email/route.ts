@@ -89,7 +89,7 @@ log('info', `Sending email to ${to}`, ['email'], {
 });
     await sgMail.send({
       to,
-      from: 'vigneshrajaprofessional@gmail.com',
+      from: process.env.SENDGRID_FROM_EMAIL!,
       subject,
       text: emailBody,
     });
