@@ -42,6 +42,51 @@ APPLICATION SETUP
 
 ---
 
+ API Key Setup Instructions
+
+    1. 🧠 Large Language Models (LLM)
+      - OpenAI
+
+        Sign up at https://platform.openai.com
+
+        Navigate to the API keys section.
+
+        Generate a key and set it as OPENAI_API_KEY.
+
+      - Gemini (Google Vertex AI)
+
+        Go to https://makersuite.google.com/app and enable the Gemini API.
+
+        Create a key and set it as GOOGLE_API_KEY.
+
+     2. 📬 Email Automation (SendGrid)
+        Sign up at https://sendgrid.com
+
+        Create an API key under Settings > API Keys
+
+        Assign it to SENDGRID_API_KEY
+
+     3. 📊 Logging (Logfire / Pydantic)
+        Create an account at https://logfire.dev (or the relevant log provider)
+
+        Generate a write-access API token
+
+        Set it as LOGGER_API_KEY
+
+     4. 🧠 Vector Database (Qdrant)
+        Go to https://cloud.qdrant.io
+
+        Create a new cluster
+
+        Under API Keys, generate one with full read/write permissions
+
+        Copy the cluster URL and port for QDRANT_URL (e.g., https://your-cluster.cloud.qdrant.io:6333)
+
+        Set the generated key as QDRANT_API_KEY
+
+---
+
+
 ## 🏗️ Tech Stack
 
 | Layer             | Tech Used                                |
