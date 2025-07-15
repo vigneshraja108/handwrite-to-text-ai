@@ -1,0 +1,23 @@
+handwrite-to-text-ai/
+├── .next/
+├── app/
+│   ├── api/
+│   │   ├── chat/
+│   │   │   └── route.ts
+│   │   ├── create-collection/
+│   │   │   └── route.ts
+│   │   ├── gemini/
+│   │   │   └── route.ts
+│   │   ├── save-to-qdrant/
+│   │   │   └── route.ts
+│   │   └── send-email/
+│   │       └── route.ts
+│   ├── favicon.ico
+│   ├── globals.css
+│   ├── layout.tsx
+│   └── page.tsx
+├── lib/
+│   ├── logger.ts
+│   └── qdrant.ts
+├── node_modules/
+├── public/
